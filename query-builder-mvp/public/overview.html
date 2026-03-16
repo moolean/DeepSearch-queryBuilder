@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Query Graph 结构化总览</title>
+  <style>
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f8fafc;margin:0;color:#0f172a}
+    .top{background:#0f172a;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+    .wrap{padding:14px;display:grid;grid-template-columns:1.2fr 1fr;gap:12px}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px}
+    h2{margin:0 0 10px;font-size:16px}
+    .meta{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:13px}
+    .node{border:1px solid #93c5fd;background:#eff6ff;border-radius:8px;padding:8px;margin:8px 0}
+    .children{border-left:2px dashed #93c5fd;margin-left:10px;padding-left:10px}
+    .tiny{font-size:12px;color:#475569}
+    .qa{white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:13px}
+    .btn{border:none;background:#2563eb;color:#fff;border-radius:8px;padding:8px 10px;cursor:pointer}
+    @media(max-width:1100px){.wrap{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div><strong>结构化总览页</strong> · 用于写最终问题</div>
+    <button class="btn" onclick="location.reload()">刷新读取最新树</button>
+  </div>
+
+  <div class="wrap">
+    <section class="card">
+      <h2>基础信息</h2>
+      <div class="meta" id="meta"></div>
+
+      <h2 style="margin-top:12px">关系树（完整信息）</h2>
+      <div id="tree"></div>
+    </section>
+
+    <section class="card">
+      <h2>写题辅助视图</h2>
+      <div class="tiny">先看“模糊化约束摘要”，再拼接成最终问题。</div>
+      <h3>模糊化约束摘要</h3>
+      <div id="fuzzyList" class="qa"></div>
+
+      <h3 style="margin-top:10px">最终问题（当前草稿）</h3>
+      <div id="question" class="qa"></div>
+
+      <h3 style="margin-top:10px">标准答案</h3>
+      <div id="answer" class="qa"></div>
+    </section>
+  </div>
+
+  <script>
+    const state = JSON.parse(localStorage.getItem('qb_state') || '{"constraints":[]}');
+    const constraints = (state.constraints || []).filter(c => c.selected);
+
+    function t(v){ return v || '-'; }
+    function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    const meta = document.getElementById('meta');
+    meta.innerHTML = `
+      <div class="item"><b>任务标题</b><br/>${esc(t(state.title))}</div>
+      <div class="item"><b>类别</b><br/>${esc(t(state.category))}</div>
+      <div class="item"><b>根问题</b><br/>${esc(t(state.rootQuestion))}</div>
+      <div class="item"><b>根问题来源URL</b><br/>${esc(t(state.rootSourceUrl))}</div>
+      <div class="item"><b>根问题来源截图</b><br/>${esc(t(state.rootSourceShotName))}</div>
+      <div class="item"><b>目标实体</b><br/>${esc(t(state.targetEntity))}</div>
+      <div class="item"><b>约束数量</b><br/>${constraints.length}</div>
+    `;
+
+    const map = new Map(constraints.map(c => [String(c.id), { ...c, children: [] }]));
+    const roots = [];
+    map.forEach(node => {
+      const from = String(node.relationFrom || 'entity');
+      if (from === 'entity' || !map.has(from)) roots.push(node);
+      else map.get(from).children.push(node);
+    });
+
+    function renderNode(n){
+      const ev = (n.evidence || []).filter(Boolean);
+      return `
+        <div class="node">
+          <div><b>约束${n.id}</b> <span class="tiny">(from: ${esc(n.relationFrom||'entity')} / 关系: ${esc(n.relationLabel||'')})</span></div>
+          <div class="tiny">原始：${esc(n.text||'')}</div>
+          <div>模糊化：${esc(n.fuzzy || '（未填写）')}</div>
+          <div class="tiny">证据：${ev.length ? esc(ev.join(' | ')) : '（未绑定）'}</div>
+          ${n.children.length ? `<div class="children">${n.children.map(renderNode).join('')}</div>` : ''}
+        </div>
+      `;
+    }
+
+    document.getElementById('tree').innerHTML = roots.length
+      ? roots.map(renderNode).join('')
+      : '<div class="tiny">暂无关系树，请回主页面添加约束并设置关系。</div>';
+
+    const fuzzyList = constraints.map((c, i) => `${i+1}. ${c.fuzzy || '（未填写）'}`).join('\n');
+    document.getElementById('fuzzyList').textContent = fuzzyList || '暂无';
+    document.getElementById('question').textContent = state.question || '暂无';
+    document.getElementById('answer').textContent = state.answer || '暂无';
+  </script>
+</body>
+</html>

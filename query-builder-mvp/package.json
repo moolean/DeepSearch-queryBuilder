@@ -1,0 +1,13 @@
+{
+  "name": "query-builder-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Interactive query construction tool with evidence-chain visualization",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
