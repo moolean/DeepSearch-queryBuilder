@@ -475,7 +475,7 @@
 
           <h4>约束寻找规则</h4>
           <ul>
-            <li>层级数量：一级约束节点数 <b>≥3</b>；后续每一级节点数 <b>≥2</b>。</li>
+            <li>层级数量：一级约束节点数 <b>≥3</b>（硬性）；后续每一级节点数 <b>建议≥2</b>（非硬性）。</li>
             <li>最终问题：从树中挑选 <b>3~7</b> 个最终约束组成问题。</li>
             <li>难度：至少 <b>3跳</b>，建议 3~6 跳。多跳定义：根节点->约束1->约束2 即为3跳（到子约束n为n+1跳）。</li>
             <li>独立性：任意1~2条约束简单搜5次不能直达答案。</li>
@@ -688,23 +688,21 @@
         for (const c of cons) maxDepth = Math.max(maxDepth, depth(String(c.id)));
         const maxHops = maxDepth + 1;
 
-        // 2) 层级节点数规则：一级>=3，后续每一级>=2
+        // 2) 层级节点数规则：一级>=3（硬性），后续每一级>=2（建议）
         const levelCnt = {};
         for (const c of cons) {
           const lv = depth(String(c.id)); // 一级约束 depth=1
           levelCnt[lv] = (levelCnt[lv] || 0) + 1;
         }
         const l1 = levelCnt[1] || 0;
-        let levelRuleOk = l1 >= 3;
-        if (!levelRuleOk) errs.push(`一级约束节点不足：当前${l1}，需>=3`);
+        const l1RuleOk = l1 >= 3;
+        if (!l1RuleOk) errs.push(`一级约束节点不足：当前${l1}，需>=3`);
         const levels = Object.keys(levelCnt).map(x => Number(x)).sort((a,b)=>a-b);
         for (const lv of levels) {
           if (lv >= 2 && levelCnt[lv] < 2) {
-            levelRuleOk = false;
+            score -= 5; // 非硬性，作为质量扣分
+            errs.push(`第${lv}级节点较少：当前${levelCnt[lv]}，建议>=2`);
           }
-        }
-        for (const lv of levels) {
-          if (lv >= 2 && levelCnt[lv] < 2) errs.push(`第${lv}级节点不足：当前${levelCnt[lv]}，需>=2`);
         }
 
         // 3) 叶子节点都有模糊化信息（中间节点不强制）
@@ -716,7 +714,7 @@
         if (leafNoFuzzy) errs.push('存在叶子节点未填写模糊化信息');
 
         if (score < 0) score = 0;
-        const hardPass = maxHops >= 3 && levelRuleOk && !leafNoFuzzy;
+        const hardPass = maxHops >= 3 && l1RuleOk && !leafNoFuzzy;
         const pass = score >= 80 && hardPass;
         const scoreEl = document.getElementById('score');
         scoreEl.textContent = String(score);
