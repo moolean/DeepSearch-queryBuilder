@@ -90,6 +90,7 @@
         <label>最终问题（Question）<span class="hint">必填（最重要）</span></label>
         <textarea id="question" placeholder="根据约束写成自然语言问题"></textarea>
         <div class="tiny" style="color:#b91c1c;">提醒：最终问题是评分与交付的核心字段，未填写则不可通过质检。</div>
+        <div class="tiny" style="color:#b45309;">语言要求：最终问题可写中文或英文，但不能中英混写（只能二选一）。</div>
 
         <div class="example-box">
           <label>📚 BrowseComp 参考例子（排版优化）</label>
@@ -654,10 +655,18 @@
           score -= 25; errs.push('基础字段未填完整（标题/根问题/实体/答案/问题）');
         }
 
-        const finalQuestionMissing = !v('question');
+        const qText = v('question');
+        const finalQuestionMissing = !qText;
         if (finalQuestionMissing) {
           score = 0;
           errs.push('最终问题未填写：该项为最重要字段，必须填写后才能通过质检');
+        }
+
+        const hasZh = /[\u4e00-\u9fff]/.test(qText);
+        const hasEn = /[A-Za-z]/.test(qText);
+        if (qText && hasZh && hasEn) {
+          score = 0;
+          errs.push('最终问题语言不合规：可中文或英文，但不能中英混写');
         }
 
         const hasRootSource = !!v('rootSourceUrl') || !!(state.rootSourceShotName || '').trim();
