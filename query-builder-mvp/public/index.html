@@ -87,8 +87,9 @@
     <div style="padding:0 12px 12px;">
       <section class="card">
         <h2>3) QA 生成与质检（置顶）</h2>
-        <label>最终问题（Question）<span class="hint">必填</span></label>
+        <label>最终问题（Question）<span class="hint">必填（最重要）</span></label>
         <textarea id="question" placeholder="根据约束写成自然语言问题"></textarea>
+        <div class="tiny" style="color:#b91c1c;">提醒：最终问题是评分与交付的核心字段，未填写则不可通过质检。</div>
 
         <div class="example-box">
           <label>📚 BrowseComp 参考例子（排版优化）</label>
@@ -651,6 +652,12 @@
 
         if (!v('title') || !v('rootQuestion') || !v('targetEntity') || !v('answer') || !v('question')) {
           score -= 25; errs.push('基础字段未填完整（标题/根问题/实体/答案/问题）');
+        }
+
+        const finalQuestionMissing = !v('question');
+        if (finalQuestionMissing) {
+          score = 0;
+          errs.push('最终问题未填写：该项为最重要字段，必须填写后才能通过质检');
         }
 
         const hasRootSource = !!v('rootSourceUrl') || !!(state.rootSourceShotName || '').trim();
